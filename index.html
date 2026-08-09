@@ -360,14 +360,18 @@
     }
 
     function addWater(amount) {
-      google.script.run
-        .withSuccessHandler(function(res) {
-          if (res && res.sukses) {
+    fetch('https://script.google.com/macros/s/AKfycbwfCTpUxEzEPSlT3sg1TdAX-jeYUBvyGFVC12GwPBYKk5tzIXsI8EVpoqCUz-v_tr-S/exec', {
+        method: 'POST',
+        body: JSON.stringify({ action: 'tambahAir', amount: amount })
+    })
+    .then(res => res.json())
+    .then(res => {
+        if (res && res.sukses) {
             updateUI(res.rekap);
-          }
-        })
-        .tambahAir(amount);
-    }
+        }
+    })
+    .catch(err => console.error(err));
+}
   </script>
 </body>
 </html>
