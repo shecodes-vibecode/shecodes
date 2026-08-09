@@ -163,215 +163,72 @@
   </div>
 
   <script>
-    window.onload = function() {
-      google.script.run
-        .withSuccessHandler(updateUI)
-        .withFailureHandler(function(err){ console.error(err); })
-        .getRingkasanHariIni();
+  const SCRIPT_URL = 'https://script.google.com/macros/s/AKfycbwfCTpUxEzEPSlT3sg1TdAX-jeYUBvyGFVC12GwPBYKk5tzIXsI8EVpoqCUz-v_tr-S/exec';
 
-      document.getElementById('jenisAktivitas')?.addEventListener('input', hitungOtomatisAktivitas);
-      document.getElementById('durasiAktivitas')?.addEventListener('input', hitungOtomatisAktivitas);
-    };
-
-    function updateUI(data) {
-      if (!data) return;
-      document.getElementById('totalKalori').innerText = (data.kalori || 0) + ' kcal';
-      document.getElementById('totalBakar').innerText = (data.bakar || 0) + ' kcal';
-      document.getElementById('totalProtein').innerText = (data.protein || 0) + 'g';
-      document.getElementById('totalKarbo').innerText = (data.karbo || 0) + 'g';
-      document.getElementById('totalLemak').innerText = (data.lemak || 0) + 'g';
-      
-      let air = data.air || 0;
-      document.getElementById('totalAir').innerText = air + ' / 2000 ml';
-      let percent = Math.min((air / 2000) * 100, 100);
-      document.getElementById('airProgress').style.width = percent + '%';
-    }
-
-    function switchTab(tab) {
-      const foodForm = document.getElementById('foodForm');
-      const actForm = document.getElementById('actForm');
-      const infoSection = document.getElementById('infoSection');
-      
-      const tabFoodBtn = document.getElementById('tabFoodBtn');
-      const tabActBtn = document.getElementById('tabActBtn');
-      const tabInfoBtn = document.getElementById('tabInfoBtn');
-
-      foodForm.classList.add('hidden');
-      actForm.classList.add('hidden');
-      infoSection.classList.add('hidden');
-
-      [tabFoodBtn, tabActBtn, tabInfoBtn].forEach(btn => {
-        btn.classList.remove('active-tab');
-        btn.classList.add('text-gray-500');
-      });
-
-      if (tab === 'food') {
-        foodForm.classList.remove('hidden');
-        tabFoodBtn.classList.add('active-tab');
-        tabFoodBtn.classList.remove('text-gray-500');
-      } else if (tab === 'act') {
-        actForm.classList.remove('hidden');
-        tabActBtn.classList.add('active-tab');
-        tabActBtn.classList.remove('text-gray-500');
-      } else if (tab === 'info') {
-        infoSection.classList.remove('hidden');
-        tabInfoBtn.classList.add('active-tab');
-        tabInfoBtn.classList.remove('text-gray-500');
-      }
-    }
-
-    function hitungOtomatisAktivitas() {
-      const jenis = document.getElementById('jenisAktivitas')?.value.toLowerCase() || '';
-      const durasiText = document.getElementById('durasiAktivitas')?.value || '';
-      
-      const matchAngka = durasiText.match(/\d+/);
-      const durasiMenit = matchAngka ? parseInt(matchAngka[0]) : 0;
-
-      if (!durasiMenit || durasiMenit <= 0) {
-        document.getElementById('kaloriBakar').value = 0;
-        return;
-      }
-      
-      let rate = 5; 
-      if (jenis.includes('lari') || jenis.includes('sepak bola') || jenis.includes('renang')) {
-        rate = 10;
-      } else if (jenis.includes('jogging') || jenis.includes('basket')) {
-        rate = 8;
-      } else if (jenis.includes('bersepeda') || jenis.includes('bulutangkis') || jenis.includes('gym') || jenis.includes('fitnes')) {
-        rate = 7;
-      } else if (jenis.includes('senam')) {
-        rate = 5.5;
-      } else if (jenis.includes('jalan')) {
-        rate = 4;
-      } else if (jenis.includes('yoga')) {
-        rate = 3;
-      }
-
-      document.getElementById('kaloriBakar').value = durasiMenit * rate;
-    }
-
-    function autoCariNutrisi() {
-      const nama = document.getElementById('namaMakanan').value.trim();
-      const notif = document.getElementById('notifNutrisi');
-      const btnCariText = document.getElementById('btnCariText');
-      const btnCari = document.getElementById('btnCari');
-
-      if (!nama) {
-        notif.innerText = "❌ Masukkan nama makanan terlebih dahulu.";
-        notif.className = "text-[11px] mt-1 text-red-500 font-medium block";
-        return;
-      }
-
-      btnCariText.innerText = "Mencari...";
-      btnCari.disabled = true;
-      notif.className = "text-[11px] mt-1 text-gray-500 block";
-      notif.innerText = "⏳ Sedang mencari data nutrisi...";
-
-      google.script.run
-        .withSuccessHandler(function(res) {
-          btnCariText.innerText = "Cari Nutrisi";
-          btnCari.disabled = false;
-
-          if (res && res.sukses) {
-            document.getElementById('kaloriMakanan').value = res.kalori;
-            document.getElementById('proteinMakanan').value = res.protein;
-            document.getElementById('karboMakanan').value = res.karbo;
-            document.getElementById('lemakMakanan').value = res.lemak;
-
-            notif.innerText = "✅ Ketemu: " + res.kalori + " kcal.";
-            notif.className = "text-[11px] mt-1 text-emerald-600 font-semibold block";
-          } else {
-            notif.innerText = "⚠️ " + (res.pesan || "Data tidak ditemukan. Silakan isi angka manual.");
-            notif.className = "text-[11px] mt-1 text-amber-600 font-medium block";
-          }
-        })
-        .withFailureHandler(function(err) {
-          btnCariText.innerText = "Cari Nutrisi";
-          btnCari.disabled = false;
-          notif.innerText = "❌ Gagal menghubungkan layanan.";
-          notif.className = "text-[11px] mt-1 text-red-500 block";
-        })
-        .cariNutrisiOtomatis(nama);
-    }
-
-    function handleFoodSubmit(e) {
-      e.preventDefault();
-      const btn = document.getElementById('btnFood');
-      btn.innerText = 'Menyimpan...';
-      btn.disabled = true;
-
-      const data = {
-        nama: document.getElementById('namaMakanan').value,
-        kalori: document.getElementById('kaloriMakanan').value,
-        protein: document.getElementById('proteinMakanan').value,
-        karbo: document.getElementById('karboMakanan').value,
-        lemak: document.getElementById('lemakMakanan').value
-      };
-
-      google.script.run
-        .withSuccessHandler(function(res) {
-          btn.innerText = 'Simpan Makanan';
-          btn.disabled = false;
-          if (res && res.sukses) {
-            updateUI(res.rekap);
-            document.getElementById('foodForm').reset();
-            document.getElementById('notifNutrisi').className = "text-[11px] mt-1 hidden";
-          } else {
-            alert('Gagal menyimpan.');
-          }
-        })
-        .withFailureHandler(function(err) {
-          btn.innerText = 'Simpan Makanan';
-          btn.disabled = false;
-          alert('Terjadi kesalahan koneksi.');
-        })
-        .simpanMakanan(data);
-    }
-
-    function handleActSubmit(e) {
-      e.preventDefault();
-      const btn = document.getElementById('btnAct');
-      btn.innerText = 'Menyimpan...';
-      btn.disabled = true;
-
-      const data = {
-        jenis: document.getElementById('jenisAktivitas').value,
-        durasi: document.getElementById('durasiAktivitas').value,
-        kalori: document.getElementById('kaloriBakar').value
-      };
-
-      google.script.run
-        .withSuccessHandler(function(res) {
-          btn.innerText = 'Simpan Aktivitas';
-          btn.disabled = false;
-          if (res && res.sukses) {
-            updateUI(res.rekap);
-            document.getElementById('actForm').reset();
-          } else {
-            alert('Gagal menyimpan.');
-          }
-        })
-        .withFailureHandler(function(err) {
-          btn.innerText = 'Simpan Aktivitas';
-          btn.disabled = false;
-          alert('Terjadi kesalahan koneksi.');
-        })
-        .simpanAktivitas(data);
-    }
-
-    function addWater(amount) {
-    fetch('https://script.google.com/macros/s/AKfycbwfCTpUxEzEPSlT3sg1TdAX-jeYUBvyGFVC12GwPBYKk5tzIXsI8EVpoqCUz-v_tr-S/exec', {
-        method: 'POST',
-        body: JSON.stringify({ action: 'tambahAir', amount: amount })
+  // Fungsi Tambah Air
+  function addWater(amount) {
+    fetch(SCRIPT_URL, {
+      method: 'POST',
+      body: JSON.stringify({ action: 'tambahAir', amount: amount })
     })
     .then(res => res.json())
     .then(res => {
-        if (res && res.sukses) {
-            updateUI(res.rekap);
-        }
+      if (res && res.sukses) updateUI(res.rekap);
     })
-    .catch(err => console.error(err));
-}
-  </script>
+    .catch(err => alert('Gagal menyimpan air: ' + err));
+  }
+
+  // Fungsi Cari Nutrisi Otomatis (Mengisi Value, bukan Placeholder)
+  function cariNutrisi() {
+    const namaMakanan = document.getElementById('namaMakanan')?.value;
+    if (!namaMakanan) return alert('Isi nama makanan dulu!');
+
+    fetch(`${SCRIPT_URL}?action=cariNutrisi&nama=${encodeURIComponent(namaMakanan)}`)
+      .then(res => res.json())
+      .then(data => {
+        if (data) {
+          if (document.getElementById('kaloriInput')) document.getElementById('kaloriInput').value = data.kalori || 0;
+          if (document.getElementById('proteinInput')) document.getElementById('proteinInput').value = data.protein || 0;
+          if (document.getElementById('karboInput')) document.getElementById('karboInput').value = data.karbo || 0;
+          if (document.getElementById('lemakInput')) document.getElementById('lemakInput').value = data.lemak || 0;
+        }
+      })
+      .catch(err => console.error('Error cari nutrisi:', err));
+  }
+
+  // Fungsi Simpan Makanan
+  function simpanMakanan(data) {
+    const btn = event?.target;
+    if (btn) {
+      btn.innerText = 'Menyimpan...';
+      btn.disabled = true;
+    }
+
+    fetch(SCRIPT_URL, {
+      method: 'POST',
+      body: JSON.stringify({ action: 'simpanMakanan', data: data })
+    })
+    .then(res => res.json())
+    .then(res => {
+      if (btn) {
+        btn.innerText = 'Simpan Makanan';
+        btn.disabled = false;
+      }
+      if (res && res.sukses) {
+        alert('Makanan berhasil disimpan!');
+        if (res.rekap) updateUI(res.rekap);
+      } else {
+        alert('Gagal menyimpan.');
+      }
+    })
+    .catch(err => {
+      if (btn) {
+        btn.innerText = 'Simpan Makanan';
+        btn.disabled = false;
+      }
+      alert('Terjadi kesalahan koneksi.');
+    });
+  }
+</script> 
 </body>
 </html>
