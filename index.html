@@ -163,11 +163,13 @@
   </div>
 
   <script>
+    const SCRIPT_URL = 'https://script.google.com/macros/s/AKfycbwfCTpUxEzEPSlT3sg1TdAX-jeYUBvyGFVC12GwPBYKk5tzIXsI8EVpoqCUz-v_tr-S/exec';
+
     window.onload = function() {
-      google.script.run
-        .withSuccessHandler(updateUI)
-        .withFailureHandler(function(err){ console.error(err); })
-        .getRingkasanHariIni();
+      fetch(`${SCRIPT_URL}?action=getRingkasan`)
+        .then(res => res.json())
+        .then(data => updateUI(data))
+        .catch(err => console.error(err));
 
       document.getElementById('jenisAktivitas')?.addEventListener('input', hitungOtomatisAktivitas);
       document.getElementById('durasiAktivitas')?.addEventListener('input', hitungOtomatisAktivitas);
@@ -267,8 +269,9 @@
       notif.className = "text-[11px] mt-1 text-gray-500 block";
       notif.innerText = "⏳ Sedang mencari data nutrisi...";
 
-      google.script.run
-        .withSuccessHandler(function(res) {
+      fetch(`${SCRIPT_URL}?action=cariNutrisi&nama=${encodeURIComponent(nama)}`)
+        .then(res => res.json())
+        .then(res => {
           btnCariText.innerText = "Cari Nutrisi";
           btnCari.disabled = false;
 
@@ -285,13 +288,12 @@
             notif.className = "text-[11px] mt-1 text-amber-600 font-medium block";
           }
         })
-        .withFailureHandler(function(err) {
+        .catch(err => {
           btnCariText.innerText = "Cari Nutrisi";
           btnCari.disabled = false;
-          notif.innerText = "❌ Gagal menghubungkan layanan.";
-          notif.className = "text-[11px] mt-1 text-red-500 block";
-        })
-        .cariNutrisiOtomatis(nama);
+          notif.innerText = "❌ Silakan isi angka nutrisi secara manual.";
+          notif.className = "text-[11px] mt-1 text-amber-600 font-medium block";
+        });
     }
 
     function handleFoodSubmit(e) {
@@ -301,6 +303,7 @@
       btn.disabled = true;
 
       const data = {
+        action: 'simpanMakanan',
         nama: document.getElementById('namaMakanan').value,
         kalori: document.getElementById('kaloriMakanan').value,
         protein: document.getElementById('proteinMakanan').value,
@@ -308,24 +311,28 @@
         lemak: document.getElementById('lemakMakanan').value
       };
 
-      google.script.run
-        .withSuccessHandler(function(res) {
-          btn.innerText = 'Simpan Makanan';
-          btn.disabled = false;
-          if (res && res.sukses) {
-            updateUI(res.rekap);
-            document.getElementById('foodForm').reset();
-            document.getElementById('notifNutrisi').className = "text-[11px] mt-1 hidden";
-          } else {
-            alert('Gagal menyimpan.');
-          }
-        })
-        .withFailureHandler(function(err) {
-          btn.innerText = 'Simpan Makanan';
-          btn.disabled = false;
-          alert('Terjadi kesalahan koneksi.');
-        })
-        .simpanMakanan(data);
+      fetch(SCRIPT_URL, {
+        method: 'POST',
+        body: JSON.stringify(data)
+      })
+      .then(res => res.json())
+      .then(res => {
+        btn.innerText = 'Simpan Makanan';
+        btn.disabled = false;
+        if (res && res.sukses) {
+          if(res.rekap) updateUI(res.rekap);
+          document.getElementById('foodForm').reset();
+          document.getElementById('notifNutrisi').className = "text-[11px] mt-1 hidden";
+          alert('Makanan berhasil disimpan!');
+        } else {
+          alert('Gagal menyimpan.');
+        }
+      })
+      .catch(err => {
+        btn.innerText = 'Simpan Makanan';
+        btn.disabled = false;
+        alert('Terjadi kesalahan koneksi.');
+      });
     }
 
     function handleActSubmit(e) {
@@ -335,41 +342,48 @@
       btn.disabled = true;
 
       const data = {
+        action: 'simpanAktivitas',
         jenis: document.getElementById('jenisAktivitas').value,
         durasi: document.getElementById('durasiAktivitas').value,
         kalori: document.getElementById('kaloriBakar').value
       };
 
-      google.script.run
-        .withSuccessHandler(function(res) {
-          btn.innerText = 'Simpan Aktivitas';
-          btn.disabled = false;
-          if (res && res.sukses) {
-            updateUI(res.rekap);
-            document.getElementById('actForm').reset();
-          } else {
-            alert('Gagal menyimpan.');
-          }
-        })
-        .withFailureHandler(function(err) {
-          btn.innerText = 'Simpan Aktivitas';
-          btn.disabled = false;
-          alert('Terjadi kesalahan koneksi.');
-        })
-        .simpanAktivitas(data);
+      fetch(SCRIPT_URL, {
+        method: 'POST',
+        body: JSON.stringify(data)
+      })
+      .then(res => res.json())
+      .then(res => {
+        btn.innerText = 'Simpan Aktivitas';
+        btn.disabled = false;
+        if (res && res.sukses) {
+          if(res.rekap) updateUI(res.rekap);
+          document.getElementById('actForm').reset();
+          alert('Aktivitas berhasil disimpan!');
+        } else {
+          alert('Gagal menyimpan.');
+        }
+      })
+      .catch(err => {
+        btn.innerText = 'Simpan Aktivitas';
+        btn.disabled = false;
+        alert('Terjadi kesalahan koneksi.');
+      });
     }
 
     function addWater(amount) {
-  fetch('https://script.google.com/macros/s/AKfycbwfCTpUxEzEPSlT3sg1TdAX-jeYUBvyGFVC12GwPBYKk5tzIXsI8EVpoqCUz-v_tr-S/exec', {
-    method: 'POST',
-    body: JSON.stringify({ action: 'tambahAir', amount: amount })
-  })
-  .then(res => res.json())
-  .then(res => {
-    if (res && res.sukses) updateUI(res.rekap);
-  })
-  .catch(err => console.error(err));
-}
+      fetch(SCRIPT_URL, {
+        method: 'POST',
+        body: JSON.stringify({ action: 'tambahAir', amount: amount })
+      })
+      .then(res => res.json())
+      .then(res => {
+        if (res && res.sukses && res.rekap) {
+          updateUI(res.rekap);
+        }
+      })
+      .catch(err => console.error(err));
+    }
   </script>
 </body>
 </html>
